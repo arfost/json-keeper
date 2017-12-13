@@ -15,9 +15,21 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
 
         this.entities = {};
         for(let entityType in this.params.entities){
-            this.entities[entityType] = new EntityManager(this.params.entities[entityType])
-            this.entities[entityType].setSource(this.source);
+            try{
+                this.entities[entityType] = new EntityManager(this.params.entities[entityType], this.source, entityType)
+            }catch(e){
+                if(this.logger){
+                    this.logger.error("can't create entity "+entityType, e.message)
+                }else{
+                    throw new Error("can't create entity "+entityType, e.message)
+                }
+            }
+            
         }
+    }
+
+    get entityList(){
+        return Object.keys(this.entities)
     }
 
     getAll(type){ //should send an array with all items, or a generator function if more than max entity param
@@ -53,5 +65,17 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
             this.logger.info('save for type '+type+' with entity :', entity)
         }
         return this.entities[entityType].save(value)
+    }
+
+    //methods for ParamsFromFileOrObject
+    get neededParams(){
+        return [
+            "source",
+            "entities"
+        ]
+    }
+
+    get className(){
+        return "Base"
     }
 }

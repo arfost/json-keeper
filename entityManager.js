@@ -1,9 +1,17 @@
 module.exports = class extends aTools.ParamsFromFileOrObject {
-    constructor(params, source){
+    constructor(params, source, name){
         super(params)
 
+        this.name = name;
         this.source = source;
-        this.cache = []
+
+        this.handles = this.source.getHandles(this.name)
+        this.cache = [];
+
+        if(this.params.ids){
+            this.constructId(this.params.ids)
+        }
+        
     }
 
     getAll(type){ //should send an array with all items, or a generator function if more than max entity param
@@ -39,5 +47,18 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
             this.logger.info('save for type '+type+' with entity :', entity)
         }
         return this.entities[entityType].save(value)
+    }
+
+    constructId(){
+        
+    }
+
+    //methods for ParamsFromFileOrObject
+    get neededParams(){
+        return []
+    }
+
+    get className(){
+        return "EntityManager"
     }
 }
