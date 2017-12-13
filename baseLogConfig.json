@@ -1,0 +1,16 @@
+{
+    "defaultLogger":{
+      "writers":[
+        "fileLog"
+      ],
+      "level":[
+          "INFO",
+          "LOG",
+          "ERROR",
+          "WARN"
+      ],
+      "blackListName":[],
+      "logTime":true,
+      "logLvl":true
+    }
+}
