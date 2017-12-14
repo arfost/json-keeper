@@ -1,11 +1,11 @@
 module.exports = class extends aTools.ParamsFromFileOrObject {
-    constructor(params, source, name) {
+    constructor(params, source, typeName) {
         super(params)
 
-        this.name = name;
+        this.typeName = typeName;
         this.source = source;
 
-        this.handles = this.source.getHandles(this.name)
+        this.handles = this.source.getHandles(this.typeName)
         this.cache = [];
 
         if (this.params.indexes) {
@@ -30,7 +30,21 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
     }
 
     count() { //should return the number of entity of this type currently in db
-        throw new Error("Not implemented yet")
+        return new Promise((resolve, reject) =>{
+            try{
+                let total = 0;
+                for(let handle of Object.values(this.handles)){
+                    total += handle.count
+                }
+                resolve(total)
+                /* resolve((Object.values(this.handles).reduce(
+                    (accumulateur, value) => accumulateur + value.count
+                ), 0)) */
+            }catch(e){
+                reject(e)
+            }
+            
+        })
     }
 
     save(entity) { //should create or update an entity (depending on if the datas send as an id or not)
@@ -39,7 +53,6 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
                 reject(new Error("No handle avaible"))
             }
             let avaibleHandle = false;
-            let pouet = ""
             for (let handle in this.handles) {
                 if (this.handles[handle].writeReady) {
                     avaibleHandle = true;
@@ -50,7 +63,7 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
                                 this.masterIndexes[index][value] ? this.masterIndexes[index][value] = [...this.masterIndexes[index][value], ...values[value]] : this.masterIndexes[index][value] = values[value];
                             }
                         }
-                        resolve(id)
+                        resolve(handle+"#"+id)
                     }).catch(e=>{
                         //TODO add logger
                         reject(e)

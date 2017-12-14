@@ -9,9 +9,10 @@ class Handle {
 
         try{
             this.datas = require(this.path + '#' + this.name + '.json')
+            this._saveFile()
         }catch(e){
             this.datas = {}
-            fs.writeFileSync(this.path + '#' + this.name + '.json', JSON.stringify({}));
+            this._saveFile()
         }
         
     }
@@ -38,7 +39,7 @@ class Handle {
                 }
 
                 this.datas[id] = data;
-                fs.writeFileSync(this.path + '#' + this.name + '.json', JSON.stringify(this.datas));
+                this._saveFile()
                 resolve(id)
             } catch (err) {
                 reject(err);
@@ -54,8 +55,21 @@ class Handle {
 
     }
 
+    _saveFile(){
+        return new Promise((resolve, reject)=>{
+            try{
+                fs.writeFileSync(this.path + '#' + this.name + '.json', JSON.stringify(this.datas));
+                resolve()
+            }catch(e){
+                reject(e)
+                //TODO logger and proper fail logic
+            }
+        })
+        
+    }
+
     get count() {
-        return Object.keys(this.datas).length;
+        return (Object.keys(this.datas).length);
     }
 
     get writeReady() {
@@ -70,8 +84,8 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
             this.config = require(this.params.basePath + "config.json");
         }catch(e){
             this.config = {}
-            this._saveConfig()
         }
+        this._saveConfig()
     }
 
     getHandles(entity) {
@@ -85,7 +99,7 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
             let name = this._getHanldeId();
             h[name] = new Handle(this.params.basePath + entity, name);
             this.config[entity] = [name];
-            this._saveConfig();
+            this._saveConfig().catch;
         }
 
         return h
@@ -108,7 +122,9 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
         return new Promise((resolve, reject)=>{
             try{
                 fs.writeFileSync(this.params.basePath + "config.json", JSON.stringify(this.config));
+                resolve()
             }catch(e){
+                reject(e)
                 //TODO logger and proper fail logic
             }
         })

@@ -24,7 +24,6 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
                     throw new Error("can't create entity "+entityType+" :"+ e.message)
                 }
             }
-            
         }
     }
 
