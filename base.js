@@ -19,9 +19,9 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
                 this.entities[entityType] = new EntityManager(this.params.entities[entityType], this.source, entityType)
             }catch(e){
                 if(this.logger){
-                    this.logger.error("can't create entity "+entityType, e.message)
+                    this.logger.error("can't create entity "+entityType+" :"+ e.message)
                 }else{
-                    throw new Error("can't create entity "+entityType, e.message)
+                    throw new Error("can't create entity "+entityType+" :"+ e.message)
                 }
             }
             
@@ -36,35 +36,35 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
         if(this.logger){
             this.logger.info('getAll for type '+type)
         }
-        return this.entities[entityType].getAll()
+        return this.entities[type].getAll()
     }
 
     getForValue(type, value){ //should send all items with corresponding values. See doc for advanced uses
         if(this.logger){
             this.logger.info('getForValue for type '+type+' with value :', value)
         }
-        return this.entities[entityType].getForValue(value)
+        return this.entities[type].getForValue(value)
     }
 
     getById(type, id){ //should send the entity corresponding at this id
         if(this.logger){
             this.logger.info('getById for type '+type+' with id :', id)
         }
-        return this.entities[entityType].getById(id)
+        return this.entities[type].getById(id)
     }
 
     count(type){ //should return the number of entity of this type currently in db
         if(this.logger){
             this.logger.info('count for type '+type)
         }
-        return this.entities[entityType].count()
+        return this.entities[type].count()
     }
 
     save(type, entity){ //should create or update an entity (depending on if the datas send as an id or not)
         if(this.logger){
             this.logger.info('save for type '+type+' with entity :', entity)
         }
-        return this.entities[entityType].save(value)
+        return this.entities[type].save(entity)
     }
 
     //methods for ParamsFromFileOrObject
