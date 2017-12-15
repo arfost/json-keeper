@@ -21,7 +21,7 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
                 if(this.logger){
                     this.logger.error("can't create entity "+entityType+" :"+ e.message)
                 }else{
-                    throw new Error("can't create entity "+entityType+" :"+ e.message)
+                    throw new Error("can't create entity "+entityType+" :"+ e.stack)
                 }
             }
         }
@@ -50,6 +50,13 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
             this.logger.info('getById for type '+type+' with id :', id)
         }
         return this.entities[type].getById(id)
+    }
+
+    deleteEntity(type, id){ //should send the entity corresponding at this id
+        if(this.logger){
+            this.logger.info('delete for type '+type+' with id :', id)
+        }
+        return this.entities[type].delete(id)
     }
 
     count(type){ //should return the number of entity of this type currently in db
