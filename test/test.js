@@ -21,7 +21,9 @@ const emptyBase = function (directory) {
 
 }
 describe('json keeper', function () {
-
+    before(function(){
+        emptyBase(baseConfig.source.basePath)
+    })
     describe('creation and configuration of a base', function () {
 
         it('should throw an error because of missing parameters', function () {
@@ -181,6 +183,6 @@ describe('json keeper', function () {
         });
     });
     after(function () {
-        emptyBase(baseConfig.source.basePath)
+        //emptyBase(baseConfig.source.basePath)
     });
 });

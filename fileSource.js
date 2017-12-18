@@ -7,27 +7,17 @@ class Handle {
         this.path = path;
         this.name = name;
 
-        this.datas = this._readFile().then(datas=>{
-            this.datas = datas;
-            this.pendingDatas = null;
-        }).catch((e)=>{
-            this.datas = {}
-            this._saveFile()
-        })
+        this.datas = this._readFile()
 
     }
 
     get(id) {
         return new Promise((res, rej)=>{
-            if(this.datas instanceof Promise){
-                this.datas.then(datas=>{
-                    res(this.datas[id])
-                }).catch((e)=>{
-                    rej(e)
-                })
-            }else{
-                res(this.datas[id])
-            }
+            this.datas.then(datas=>{
+                res(datas[id])
+            }).catch((e)=>{
+                rej(e)
+            })
         })
     }
 
@@ -44,39 +34,45 @@ class Handle {
 
                 if (this.previous === Number.MAX_SAFE_INTEGER) { this.previous = 0 };
 
-                if (this.datas[id]) {
-                    throw new Error("Already existing ID generated")
-                }
+                this.datas.then(datas=>{
+                    datas[id] = data;
+                    this._saveFile(datas).then(()=>{
+                        resolve(id)
+                        
+                    }).catch(e=>{
+                        reject(err);
+                    })
+                });
+                
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
 
-                this.datas[id] = data;
-                this._saveFile().then(()=>{
+    update(data, id) {
+        return new Promise((resolve, reject) => {
+            this.datas.then(datas=>{
+                datas[id] = data;
+                this._saveFile(datas).then(()=>{
                     resolve(id)
                 }).catch(e=>{
                     reject(err);
                 })
-            } catch (err) {
-                reject(err);
-            }
+            });
         });
     }
 
-    update(data, indexes, id) {
+    delete(id) {
         return new Promise((resolve, reject) => {
-                this.datas[id] = data;
-                this._saveFile()
-                resolve(id)
-        });
-    }
-
-    delete(id, indexes) {
-        return new Promise((resolve, reject) => {
-            try {
-                delete this.datas[id];
-                this._saveFile()
-                resolve(id)
-            } catch (err) {
-                reject(err);
-            }
+            this.datas.then(datas=>{
+                delete datas[id];
+                this._saveFile(datas).then(()=>{
+                    resolve(id)
+                }).catch(e=>{
+                    reject(err);
+                })
+            });
         });
     }
 
@@ -88,12 +84,13 @@ class Handle {
 
     }
 
-    _saveFile() {
+    _saveFile(datas) {
         return new Promise((resolve, reject) => {
-            fs.writeFile(this.path + '#' + this.name + '.json', JSON.stringify(this.datas), (e) => {
+            fs.writeFile(this.path + '#' + this.name + '.json', JSON.stringify(datas), (e) => {
                 if (e) {
                     reject(e)
                 } else {
+                    this.datas = this._readFile()
                     resolve()
                 }
             });
@@ -102,9 +99,11 @@ class Handle {
 
     _readFile() {
         return new Promise((resolve, reject) => {
-            fs.readFile(this.path + '#' + this.name + '.json', function (err, data) {
+            fs.readFile(this.path + '#' + this.name + '.json',  (err, data) =>{
                 if (err) {
-                    reject(err)
+                    this._saveFile({}).then(()=>{
+                        resolve({})
+                    })
                 } else {
                     resolve(JSON.parse(data))
                 }
@@ -113,7 +112,11 @@ class Handle {
     }
 
     get count() {
-        return (Object.keys(this.datas).length);
+        return new Promise((resolve, reject) => {
+            this.datas.then(datas=>{
+                resolve(Object.keys(datas).length)
+            });
+        });
     }
 
     get writeReady() {
@@ -133,24 +136,26 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
         
     }
 
-    getHandles(entity) {
+    getHandles(entity, indexes) {
         return new Promise((res, rej)=>{
             var h = {};
             
                     if (this.config[entity]) {
                         for (let handle of this.config[entity]) {
-                            h[handle] = new Handle(this.params.basePath + entity, handle)
+                            h[handle] = new Handle(this.params.basePath + entity, handle, indexes)
                         }
                     } else {
                         let name = this._getHanldeId();
-                        h[name] = new Handle(this.params.basePath + entity, name);
+                        h[name] = new Handle(this.params.basePath + entity, name, indexes);
                         this.config[entity] = [name];
-                        this._saveConfig().catch((e)=>{
+                        this._saveConfig().then(()=>{
+                            res(h)
+                        }).catch((e)=>{
                             throw new Error("Config can't be save")
                         });
                     }
             
-                    res(h)
+                    
         })
     }
 

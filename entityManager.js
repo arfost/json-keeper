@@ -5,13 +5,8 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
         this.typeName = typeName;
         this.source = source;
 
-        this.handles = this.source.getHandles(this.typeName)
-        this.cache = [];
-
-        if (this.params.indexes) {
-            this.constructIndex(this.params.indexes)
-        }
-
+        this.handles = this.source.getHandles(this.typeName, this.params.indexes)
+        this.cache = []; //one day there will be a cache
     }
 
     getAll() { //should send an array with all items, or a generator function if more than max entity param
@@ -43,25 +38,27 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
     count() { //should return the number of entity of this type currently in db
         return new Promise((resolve, reject) => {
             this.handles.then(handles=>{
-                let total = 0;
+                let counts = [];
                 for (let handle of Object.values(handles)) {
-                    total += handle.count
+                    counts.push(handle.count)
                 }
-                resolve(total)
+                Promise.all(counts=>{
+                    resolve(counts.reduce((agre, value)=>agre+value, 0))
+                })
             })
-            
         })
     }
 
     save(entity) { //should create or update an entity (depending on if the datas send as an id or not)
         return new Promise((resolve, reject) => {
+            if (!this.handles) {
+                reject(new Error("No handle avaible"))
+            }
             this.handles.then(handles=>{
-                if (Object.keys(handles).length === 0) {
-                    reject(new Error("No handle avaible"))
-                }
+                
                 if (entity.id) {
                     let id = entity.id.split("#")
-                    handles[id[0]].update(entity, null, id[1]).then((backId)=>{
+                    handles[id[0]].update(entity, id[1]).then((backId)=>{
                         resolve(id[0]+ "#" +backId)
                     })
                 } else {
@@ -70,12 +67,7 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
                         if (handles[handle].writeReady) {
                             avaibleHandle = true;
                             let activHandle = handles[handle];
-                            activHandle.create(entity, this.params.indexes).then((id, indexes) => {
-                                for (let index in indexes) {
-                                    for (let value in indexes[index]) {
-                                        this.masterIndexes[index][value] ? this.masterIndexes[index][value] = [...this.masterIndexes[index][value], ...values[value]] : this.masterIndexes[index][value] = values[value];
-                                    }
-                                }
+                            activHandle.create(entity, this.params.indexes).then((id) => {
                                 resolve(handle + "#" + id)
                             }).catch(e => {
                                 //TODO add logger
@@ -92,28 +84,7 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
             
         })
     }
-    constructIndex(indexes) {
-        this.masterIndexes = {};
-        let allIndexes = [];
-        for (let index of indexes) {
-            this.masterIndexes[index] = {}
-            for (let handle in this.handles) {
-                allIndexes.push(
-                    this.handles[handle].idForIndex(index).then(values => {
-                        for (let val in values) {
-                            this.masterIndexes[index][val] ? this.masterIndexes[index][val] = [...this.masterIndexes[index][val], ...values[val]] : this.masterIndexes[index][val] = values[val];
-                        }
-                    }).catch(() => {
-                        //TODO proper error gestion (send logger from parent if exist, or fail)
-                    })
-                )
-            }
-        }
-        Promise.all(allIndexes).then(() => {
-            this.indexesReady = true;
-        })
-    }
-
+    
     //methods for ParamsFromFileOrObject
     get neededParams() {
         return []
