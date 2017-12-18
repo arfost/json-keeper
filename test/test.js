@@ -21,11 +21,184 @@ const emptyBase = function (directory) {
 
 }
 describe('json keeper', function () {
-    before(function(){
-        emptyBase(baseConfig.source.basePath)
-    })
-    describe('creation and configuration of a base', function () {
 
+
+    describe('testing fileSource operations', function () {
+
+        let FileSource = require("../fileSource.js");
+        let fileSource;
+        let testDataId;
+        let hid;
+
+        before(function(){
+            emptyBase(baseConfig.source.basePath)
+        })
+        it('should create a new FileSource object', function(){
+            fileSource = new FileSource(baseConfig.source);
+            assert(Object.getOwnPropertyNames(fileSource.config).length === 0, "Config is not an empty object "+JSON.stringify(fileSource.config))
+        });
+        it('should get on handle', function(done){
+            let pro = fileSource.getHandles("test")
+            pro.then(handles=>{
+                hid = Number(Object.keys(handles)[0]);
+                assert.deepStrictEqual(fileSource.config, {"test":[hid]}, 'base config didn\'t take new handle into account : '+JSON.stringify(fileSource.config))
+                done()
+            }).catch(e=>{
+                done(e)
+            })
+        });
+
+        it('should add datas to the handle', function(done){
+            let pro = fileSource.getHandles("test")
+            pro.then(handles=>{
+                handles[hid].create({
+                    data:'value',
+                    data2:'value2'
+                }).then(id=>{
+                    handles[hid].datas.then(datas=>{
+                        let temoin = {}
+                        temoin[id] = {
+                            data:'value',
+                            data2:'value2'
+                        };
+                        assert.deepStrictEqual(datas, temoin, 'Datas doesn\'t contains expected value : '+JSON.stringify(datas))
+                        done()
+                    }).catch(e=>{
+                        done(e)
+                    })
+                }).catch(e=>{
+                    done(e)
+                })
+            }).catch(e=>{
+                done(e)
+            })
+        });
+        it('should count the datas in the handler', function(done){
+            let pro = fileSource.getHandles("test")
+            pro.then(handles=>{
+                handles[hid].count.then(count=>{
+                    assert.equal(count, 1, "Count didn't return expected value : "+count)
+                    done()
+                }).catch(e=>{
+                    done(e)
+                })
+            }).catch(e=>{
+                done(e)
+            })
+        });
+
+        it('should add new data in the handler', function(done){
+            let pro = fileSource.getHandles("test")
+            pro.then(handles=>{
+                handles[hid].create({
+                    data:'titi',
+                    data2:'titi2'
+                }).then(id=>{
+                    handles[hid].datas.then(datas=>{
+                        let temoin = {
+                            data:'titi',
+                            data2:'titi2'
+                        };
+                        testDataId = id;
+                        assert.deepStrictEqual(datas[id], temoin, 'Datas doesn\'t contains expected value : '+JSON.stringify(datas))
+                        done()
+                    }).catch(e=>{
+                        done(e)
+                    })
+                }).catch(e=>{
+                    done(e)
+                })
+            }).catch(e=>{
+                done(e)
+            })
+        });
+
+        it('should count two now', function(done){
+            let pro = fileSource.getHandles("test")
+            pro.then(handles=>{
+                handles[hid].count.then(count=>{
+                    assert.equal(count, 2, "Count didn't return expected value : "+count)
+                    done()
+                }).catch(e=>{
+                    done(e)
+                })
+            }).catch(e=>{
+                done(e)
+            })
+        });
+
+        it('should update datas in the handle', function(done){
+            let pro = fileSource.getHandles("test")
+            let oldData = JSON.parse(fs.readFileSync(baseConfig.source.basePath+'test#'+hid+'.json'))
+            oldData[testDataId] = {
+                data:'tutu',
+                data2:'tutu2'
+            }
+            pro.then(handles=>{
+                handles[hid].update({
+                    data:'tutu',
+                    data2:'tutu2'
+                }, testDataId).then(id=>{
+                    assert.deepStrictEqual(oldData, JSON.parse(fs.readFileSync(baseConfig.source.basePath+'test#'+hid+'.json')), "Count didn't return expected value : "+fs.readFileSync(baseConfig.source.basePath+'test#'+hid+'.json'))
+                    done()
+                }).catch(e=>{
+                    done(e)
+                })
+            }).catch(e=>{
+                done(e)
+            })
+        });
+
+        it('should get datas in the handle', function(done){
+            let pro = fileSource.getHandles("test")
+            let oldData = JSON.parse(fs.readFileSync(baseConfig.source.basePath+'test#'+hid+'.json'))
+            oldData[testDataId] = {
+                data:'tutu',
+                data2:'tutu2'
+            }
+            pro.then(handles=>{
+                handles[hid].get(testDataId).then(data=>{
+                    assert.deepStrictEqual(data, {
+                        data:'tutu',
+                        data2:'tutu2'
+                    }, "Count didn't return expected value : "+data)
+                    done()
+                }).catch(e=>{
+                    done(e)
+                })
+            }).catch(e=>{
+                done(e)
+            })
+        });
+
+        it('should delete datas in the hanlde', function(done){
+            let pro = fileSource.getHandles("test")
+            let oldData = JSON.parse(fs.readFileSync(baseConfig.source.basePath+'test#'+hid+'.json'))
+            delete oldData[testDataId];
+            pro.then(handles=>{
+                handles[hid].delete(testDataId).then(id=>{
+                    assert.deepStrictEqual(oldData, JSON.parse(fs.readFileSync(baseConfig.source.basePath+'test#'+hid+'.json')), "Count didn't return expected value : "+fs.readFileSync(baseConfig.source.basePath+'test#'+hid+'.json'))
+                    done()
+                }).catch(e=>{
+                    done(e)
+                })
+            }).catch(e=>{
+                done(e)
+            })
+        });
+    });
+
+
+
+
+    ////////////////////////////////////////////////////
+    // global tests case
+
+    
+    describe('creation and configuration of a base', function () {
+        before(function(){
+            emptyBase(baseConfig.source.basePath)
+        })
         it('should throw an error because of missing parameters', function () {
             assert.throws(
                 () => jsonKeeper.newBase(),
@@ -49,9 +222,6 @@ describe('json keeper', function () {
                 "message recu :"
             )
         });
-        after(function () {
-            emptyBase(baseConfig.source.basePath)
-        });
     });
 
     describe('testing the base basique read write operation', function () {
@@ -64,6 +234,7 @@ describe('json keeper', function () {
         }
         let userId;
         before(function baseCreation() {
+            emptyBase(baseConfig.source.basePath)
             base = jsonKeeper.newBase(baseConfig);
         })
         it('should find the entity user in entity list', function () {
@@ -181,8 +352,5 @@ describe('json keeper', function () {
                 done(e)
             });
         });
-    });
-    after(function () {
-        //emptyBase(baseConfig.source.basePath)
     });
 });

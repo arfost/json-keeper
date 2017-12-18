@@ -12,10 +12,10 @@ class Handle {
     }
 
     get(id) {
-        return new Promise((res, rej)=>{
-            this.datas.then(datas=>{
+        return new Promise((res, rej) => {
+            this.datas.then(datas => {
                 res(datas[id])
-            }).catch((e)=>{
+            }).catch((e) => {
                 rej(e)
             })
         })
@@ -34,16 +34,18 @@ class Handle {
 
                 if (this.previous === Number.MAX_SAFE_INTEGER) { this.previous = 0 };
 
-                this.datas.then(datas=>{
+                this.datas.then(datas => {
                     datas[id] = data;
-                    this._saveFile(datas).then(()=>{
+                    this._saveFile(datas).then(() => {
+
+                        this.datas = this._readFile().catch(e=>{throw e})
                         resolve(id)
-                        
-                    }).catch(e=>{
+
+                    }).catch(e => {
                         reject(err);
                     })
-                });
-                
+                }).catch(e=>{throw e});
+
             } catch (err) {
                 reject(err);
             }
@@ -52,11 +54,11 @@ class Handle {
 
     update(data, id) {
         return new Promise((resolve, reject) => {
-            this.datas.then(datas=>{
+            this.datas.then(datas => {
                 datas[id] = data;
-                this._saveFile(datas).then(()=>{
+                this._saveFile(datas).then(() => {
                     resolve(id)
-                }).catch(e=>{
+                }).catch(e => {
                     reject(err);
                 })
             });
@@ -65,11 +67,11 @@ class Handle {
 
     delete(id) {
         return new Promise((resolve, reject) => {
-            this.datas.then(datas=>{
+            this.datas.then(datas => {
                 delete datas[id];
-                this._saveFile(datas).then(()=>{
+                this._saveFile(datas).then(() => {
                     resolve(id)
-                }).catch(e=>{
+                }).catch(e => {
                     reject(err);
                 })
             });
@@ -90,7 +92,6 @@ class Handle {
                 if (e) {
                     reject(e)
                 } else {
-                    this.datas = this._readFile()
                     resolve()
                 }
             });
@@ -99,11 +100,11 @@ class Handle {
 
     _readFile() {
         return new Promise((resolve, reject) => {
-            fs.readFile(this.path + '#' + this.name + '.json',  (err, data) =>{
+            fs.readFile(this.path + '#' + this.name + '.json', 'utf8', (err, data) => {
                 if (err) {
-                    this._saveFile({}).then(()=>{
+                    this._saveFile({}).then(() => {
                         resolve({})
-                    })
+                    }).catch(e=>{throw e})
                 } else {
                     resolve(JSON.parse(data))
                 }
@@ -113,7 +114,7 @@ class Handle {
 
     get count() {
         return new Promise((resolve, reject) => {
-            this.datas.then(datas=>{
+            this.datas.then(datas => {
                 resolve(Object.keys(datas).length)
             });
         });
@@ -127,35 +128,32 @@ class Handle {
 module.exports = class extends aTools.ParamsFromFileOrObject {
     constructor(params) {
         super(params)
-        try{
+        try {
             this.config = this._readConfig();
-        }catch(e){
+        } catch (e) {
             this.config = {};
-            this._saveConfig();
+            this._saveConfig().catch(e => { throw e });
         }
-        
+
     }
 
     getHandles(entity, indexes) {
-        return new Promise((res, rej)=>{
+        return new Promise((res, rej) => {
             var h = {};
-            
-                    if (this.config[entity]) {
-                        for (let handle of this.config[entity]) {
-                            h[handle] = new Handle(this.params.basePath + entity, handle, indexes)
-                        }
-                    } else {
-                        let name = this._getHanldeId();
-                        h[name] = new Handle(this.params.basePath + entity, name, indexes);
-                        this.config[entity] = [name];
-                        this._saveConfig().then(()=>{
-                            res(h)
-                        }).catch((e)=>{
-                            throw new Error("Config can't be save")
-                        });
-                    }
-            
-                    
+
+            if (this.config[entity]) {
+                for (let handle of this.config[entity]) {
+                    h[handle] = new Handle(this.params.basePath + entity, handle, indexes)
+                }
+            } else {
+                let name = this._getHanldeId();
+                h[name] = new Handle(this.params.basePath + entity, name, indexes);
+                this.config[entity] = [name];
+                this._saveConfig().catch((e) => {
+                    throw new Error("Config can't be save")
+                });
+            }
+            res(h)
         })
     }
 

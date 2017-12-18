@@ -42,10 +42,15 @@ module.exports = class extends aTools.ParamsFromFileOrObject {
                 for (let handle of Object.values(handles)) {
                     counts.push(handle.count)
                 }
-                Promise.all(counts=>{
-                    resolve(counts.reduce((agre, value)=>agre+value, 0))
-                })
-            })
+                Promise.all(counts).then(countsResult=>{
+                    let total = 0
+                    for(let countResult of countsResult){
+                        total += countResult
+                    }
+                    resolve(total)
+                    //resolve(counts.reduce((agre, value)=>{return agre+value}, 0))
+                }).catch(e=>{throw e})
+            }).catch(e=>{throw e})
         })
     }
 
